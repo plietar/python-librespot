@@ -7,6 +7,7 @@ use futures;
 use pyfuture::PyFuture;
 use player::Player;
 use metadata::{Track, Album, Artist};
+use webtoken::Token;
 use SpotifyId;
 
 py_class!(pub class Session |py| {
@@ -62,5 +63,10 @@ py_class!(pub class Session |py| {
         let artist = *artist.id(py);
 
         Artist::get(py, session, artist)
+    }
+
+    def web_token(&self, client_id: &str, scopes: &str) -> PyResult<PyFuture> {
+        let session = self.session(py);
+        Token::get(py, session, client_id, scopes)
     }
 });

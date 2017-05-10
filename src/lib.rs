@@ -10,6 +10,7 @@ mod pyfuture;
 mod player;
 mod session;
 mod metadata;
+mod webtoken;
 
 py_class!(pub class SpotifyId |py| {
     data id : librespot::util::SpotifyId;
