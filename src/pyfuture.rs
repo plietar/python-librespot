@@ -1,6 +1,6 @@
 use futures::Future;
 use std::cell::RefCell;
-use cpython::{PyResult, PyObject, Python, PythonObject};
+use cpython::{PyResult, PyObject, Python, PythonObject, ToPyObject};
 
 // Workaround rust-lang/rust#28796
 pub trait Callback : Send {
@@ -25,11 +25,11 @@ impl PyFuture {
     pub fn new<F, T, U>(py: Python, future: F, then: T) -> PyResult<PyFuture>
         where F: Future + Send + 'static,
               T: FnOnce(Python, Result<F::Item, F::Error>) -> PyResult<U> + Send + 'static,
-              U: PythonObject
+              U: ToPyObject
     {
         PyFuture::create_instance(py, RefCell::new(Some(Box::new(move |py: Python| {
             let result = future.wait();
-            then(py, result).map(PythonObject::into_object)
+            then(py, result).map(|o| o.into_py_object(py).into_object())
         }))))
     }
 }

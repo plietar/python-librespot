@@ -4,11 +4,12 @@ extern crate futures;
 extern crate librespot;
 extern crate tokio_core;
 
-use cpython::PyResult;
+use cpython::{Python, PyResult};
 
 mod pyfuture;
 mod player;
 mod session;
+mod metadata;
 
 py_class!(pub class SpotifyId |py| {
     data id : librespot::util::SpotifyId;
@@ -18,6 +19,12 @@ py_class!(pub class SpotifyId |py| {
         SpotifyId::create_instance(py, id)
     }
 });
+
+impl SpotifyId {
+    pub fn new(py: Python, id: librespot::util::SpotifyId) -> PyResult<SpotifyId> {
+        SpotifyId::create_instance(py, id)
+    }
+}
 
 py_module_initializer!(librespot, initlibrespot, PyInit_librespot, |py, m| {
     m.add_class::<session::Session>(py)?;

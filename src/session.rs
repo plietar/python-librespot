@@ -6,6 +6,8 @@ use futures;
 
 use pyfuture::PyFuture;
 use player::Player;
+use metadata::{Track, Album, Artist};
+use SpotifyId;
 
 py_class!(pub class Session |py| {
     data session : librespot::session::Session;
@@ -39,5 +41,26 @@ py_class!(pub class Session |py| {
         let session = self.session(py).clone();
 
         Player::new(py, session)
+    }
+
+    def get_track(&self, track: SpotifyId) -> PyResult<PyFuture> {
+        let session = self.session(py).clone();
+        let track = *track.id(py);
+
+        Track::get(py, session, track)
+    }
+
+    def get_album(&self, album: SpotifyId) -> PyResult<PyFuture> {
+        let session = self.session(py).clone();
+        let album = *album.id(py);
+
+        Album::get(py, session, album)
+    }
+
+    def get_artist(&self, artist: SpotifyId) -> PyResult<PyFuture> {
+        let session = self.session(py).clone();
+        let artist = *artist.id(py);
+
+        Artist::get(py, session, artist)
     }
 });
