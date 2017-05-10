@@ -8,11 +8,11 @@ if len(sys.argv) != 4:
 [_, username, password, trackid] = sys.argv
 
 print("Connecting ...")
-session = Session(username, password)
+session = Session.connect(username, password).wait()
 player = session.player()
 
 print("Playing ...")
 track = SpotifyId(trackid)
-player.play(track)
+player.load(track).wait()
 
 print("Done")

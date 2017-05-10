@@ -9,6 +9,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 tokio-core = "0.1.2"
+futures = "0.1.0"
 
 [dependencies.librespot]
 git = "https://github.com/plietar/librespot"

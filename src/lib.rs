@@ -1,31 +1,71 @@
 #[macro_use]
 extern crate cpython;
-extern crate tokio_core;
+extern crate futures;
 extern crate librespot;
+extern crate tokio_core;
 
-use std::cell::RefCell;
-use cpython::{PyResult, PyObject};
+use cpython::{PyResult, PyObject, Python, PythonObject};
+use futures::Future;
+use std::thread;
 use tokio_core::reactor::Core;
+use std::cell::RefCell;
 
-thread_local! {
-    pub static CORE: RefCell<Core> = RefCell::new(Core::new().unwrap());
+// Workaround rust-lang/rust#28796
+trait Callback : Send {
+    fn call(self: Box<Self>, py: Python) -> PyResult<PyObject>;
+}
+impl <F: Send + for<'a> FnOnce(Python<'a>) -> PyResult<PyObject>> Callback for F {
+    fn call(self: Box<Self>, py: Python) -> PyResult<PyObject> {
+        (*self)(py)
+    }
+}
+
+py_class!(class PyFuture |py| {
+    data callback : RefCell<Option<Box<Callback>>>;
+
+    def wait(&self) -> PyResult<PyObject> {
+        let callback = self.callback(py).borrow_mut().take().expect("Future already completed");
+        callback.call(py)
+    }
+});
+
+impl PyFuture {
+    pub fn new<F, T, U>(py: Python, future: F, then: T) -> PyResult<PyFuture>
+        where F: Future + Send + 'static,
+              T: FnOnce(Python, Result<F::Item, F::Error>) -> PyResult<U> + Send + 'static,
+              U: PythonObject
+    {
+        PyFuture::create_instance(py, RefCell::new(Some(Box::new(move |py: Python| {
+            let result = future.wait();
+            then(py, result).map(PythonObject::into_object)
+        }))))
+    }
 }
 
 py_class!(class Session |py| {
     data session : librespot::session::Session;
 
-    def __new__(_cls, username: String, password: String) -> PyResult<Session> {
+    @classmethod def connect(_cls, username: String, password: String) -> PyResult<PyFuture> {
         use librespot::session::Config;
         use librespot::authentication::Credentials;
 
-        CORE.with(|core| {
-            let mut core = core.borrow_mut();
+        let config = Config::default();
+        let credentials = Credentials::with_password(username, password);
+
+        let (tx, rx) = futures::sync::oneshot::channel();
+        thread::spawn(move || {
+            let mut core = Core::new().unwrap();
             let handle = core.handle();
 
-            let config = Config::default();
-            let credentials = Credentials::with_password(username, password);
             let session = core.run(librespot::session::Session::connect(config, credentials, None, handle)).unwrap();
 
+            let _ = tx.send(session);
+
+            core.run(futures::future::empty::<(), ()>()).unwrap();
+        });
+
+        PyFuture::new(py, rx, |py, result| {
+            let session = result.unwrap();
             Session::create_instance(py, session)
         })
     }
@@ -42,14 +82,12 @@ py_class!(class Session |py| {
 py_class!(class Player |py| {
     data player : librespot::player::Player;
 
-    def play(&self, track: SpotifyId) -> PyResult<PyObject> {
-        CORE.with(|core| {
-            let mut core = core.borrow_mut();
-            let player = self.player(py);
-            let track = *track.id(py);
+    def load(&self, track: SpotifyId, play: bool = true, position_ms: u32 = 0) -> PyResult<PyFuture> {
+        let player = self.player(py);
+        let track = *track.id(py);
 
-            core.run(player.load(track, true, 0)).unwrap();
-
+        let end_of_track = player.load(track, play, position_ms);
+        PyFuture::new(py, end_of_track, |py, _result| {
             Ok(py.None())
         })
     }
