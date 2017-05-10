@@ -1,0 +1,17 @@
+[package]
+name = "python-librespot"
+version = "0.1.0"
+authors = ["Paul Lietar <paul@lietar.net>"]
+
+[lib]
+name = "librespot"
+crate-type = ["cdylib"]
+
+[dependencies]
+tokio-core = "0.1.2"
+
+[dependencies.librespot]
+git = "https://github.com/plietar/librespot"
+
+[dependencies.cpython]
+git = "https://github.com/dgrunwald/rust-cpython.git"
