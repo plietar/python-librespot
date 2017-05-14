@@ -11,8 +11,8 @@ py_class!(pub class Player |py| {
         let track = *track.id(py);
 
         let end_of_track = player.load(track, play, position_ms);
-        PyFuture::new(py, end_of_track, |py, _result| {
-            Ok(py.None())
+        PyFuture::new(py, end_of_track, |_py, _result| {
+            Ok(true)
         })
     }
 
