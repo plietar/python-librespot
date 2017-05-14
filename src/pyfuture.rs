@@ -41,7 +41,7 @@ impl <F, T, U> Callback for FutureData<F, T>
 
     fn wait(&mut self, py: Python) -> PyResult<PyObject> {
         let mut future = self.future.take().expect("Future already completed");
-        let result = future.wait_future();
+        let result = py.allow_threads(|| future.wait_future());
 
         let then = self.then.take().unwrap();
         then(py, result).map(|o| o.into_py_object(py).into_object())
