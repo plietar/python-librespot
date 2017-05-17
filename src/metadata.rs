@@ -83,7 +83,7 @@ fn get<T, F, O>(py: Python,
                 create_instance: F) -> PyResult<PyFuture>
     where
         T: librespot::metadata::MetadataTrait + Send,
-        F: FnOnce(Python, librespot::session::Session, T) -> PyResult<O> + Send + 'static,
+        F: FnOnce(Python, librespot::session::Session, Remote, T) -> PyResult<O> + Send + 'static,
         O: PythonObject
 {
     let future = session.metadata().get::<T>(id);
@@ -99,7 +99,7 @@ fn get_all<T, F, O, I>(py: Python,
                        create_instance: F) -> PyResult<PyFuture>
     where
         T: librespot::metadata::MetadataTrait + Send,
-        F: Fn(Python, librespot::session::Session, T) -> PyResult<O> + Send + 'static,
+        F: Fn(Python, librespot::session::Session, Remote, T) -> PyResult<O> + Send + 'static,
         O: PythonObject,
         I: IntoIterator<Item = librespot::util::SpotifyId>,
         I::IntoIter: 'static
@@ -127,7 +127,7 @@ impl Track {
                handle : Remote,
                id: librespot::util::SpotifyId) -> PyResult<PyFuture>
     {
-        get(py, session, id, Track::create_instance)
+        get(py, session, handle, id, Track::create_instance)
     }
 
     pub fn get_all<I>(py: Python,
@@ -147,7 +147,7 @@ impl Album {
                handle : Remote,
                id: librespot::util::SpotifyId) -> PyResult<PyFuture>
     {
-        get(py, session, id, Album::create_instance)
+        get(py, session, handle, id, Album::create_instance)
     }
 
     pub fn get_all<I>(py: Python,
