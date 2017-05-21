@@ -14,15 +14,7 @@ print("Connecting ...")
 session = Session.connect(username, password).wait()
 player = session.player()
 
-print(threading.get_ident())
-def print_track(track):
-    print(threading.get_ident())
-    print("Playing track \"%s\"..." % (track.name(),))
-
-session.get_track(trackid).spawn(print_track)
-
 print("Playing ...")
 player.load(trackid).wait()
-
 
 print("Done")
